@@ -1,0 +1,8 @@
+name: CrownPacketHandler
+version: '1.0.0-SNAPSHOT'
+main: kr.crownrpg.packethandler.CrownPacketHandler
+api-version: '1.21'
+author: CrownRPG
+description: Client Packet → Bukkit Event adapter
+depend:
+  - CrownLib
