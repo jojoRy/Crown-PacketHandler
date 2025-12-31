@@ -1,6 +1,7 @@
 package kr.crownrpg.packethandler.channel;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import kr.crownrpg.packethandler.event.*;
 import kr.crownrpg.packethandler.packet.Envelope;
 import kr.crownrpg.packethandler.packet.PacketType;
@@ -50,36 +51,44 @@ public final class CrownPluginMessageListener implements PluginMessageListener {
 
             // 패킷 타입에 따라 입력 이벤트 발행
             PacketType type = envelope.type();
+            JsonObject payload = envelope.payload();
 
             switch (type) {
 
                 case HOTKEY -> Bukkit.getPluginManager().callEvent(
                         new CrownPlayerHotkeyEvent(
                                 player,
-                                envelope.payload().get("action").getAsString(),
-                                envelope.payload().get("pressed").getAsBoolean(),
-                                envelope.payload().has("context")
-                                        ? envelope.payload().get("context").getAsString()
-                                        : "unknown"
+                                extractString(payload, "action"),
+                                extractBoolean(payload, "pressed"),
+                                extractNullableString(payload, "context")
+                        )
+                );
+
+                case TEXT_INPUT_PREVIEW -> Bukkit.getPluginManager().callEvent(
+                        new CrownPlayerTextInputPreviewEvent(
+                                player,
+                                requireRequestId(envelope.requestId()),
+                                extractString(payload, "context"),
+                                extractString(payload, "text")
                         )
                 );
 
                 case TEXT_INPUT -> Bukkit.getPluginManager().callEvent(
                         new CrownPlayerTextInputEvent(
                                 player,
-                                envelope.requestId(),
-                                envelope.payload().get("context").getAsString(),
-                                envelope.payload().get("text").getAsString(),
-                                envelope.payload().get("confirmed").getAsBoolean()
+                                requireRequestId(envelope.requestId()),
+                                extractString(payload, "context"),
+                                extractString(payload, "text"),
+                                extractBoolean(payload, "confirmed")
                         )
                 );
 
                 case UI_ACTION -> Bukkit.getPluginManager().callEvent(
                         new CrownPlayerUiActionEvent(
                                 player,
-                                envelope.requestId(),
-                                envelope.payload().get("ui").getAsString(),
-                                envelope.payload().get("action").getAsString()
+                                requireRequestId(envelope.requestId()),
+                                extractString(payload, "ui"),
+                                extractString(payload, "action")
                         )
                 );
             }
@@ -87,5 +96,42 @@ public final class CrownPluginMessageListener implements PluginMessageListener {
         } catch (Exception ignored) {
             // ❗ 어떤 경우에도 서버 크래시를 유발하지 않는다.
         }
+    }
+
+    private static boolean hasString(JsonObject payload, String key) {
+        if (payload == null || !payload.has(key)) return false;
+        JsonPrimitive primitive = payload.getAsJsonPrimitive(key);
+        return primitive != null && primitive.isString();
+    }
+
+    private static boolean hasBoolean(JsonObject payload, String key) {
+        if (payload == null || !payload.has(key)) return false;
+        JsonPrimitive primitive = payload.getAsJsonPrimitive(key);
+        return primitive != null && primitive.isBoolean();
+    }
+
+    private static String extractString(JsonObject payload, String key) {
+        if (!hasString(payload, key)) {
+            throw new IllegalArgumentException("Missing required string field: " + key);
+        }
+        return payload.get(key).getAsString();
+    }
+
+    private static boolean extractBoolean(JsonObject payload, String key) {
+        if (!hasBoolean(payload, key)) {
+            throw new IllegalArgumentException("Missing required boolean field: " + key);
+        }
+        return payload.get(key).getAsBoolean();
+    }
+
+    private static String extractNullableString(JsonObject payload, String key) {
+        return hasString(payload, key) ? payload.get(key).getAsString() : null;
+    }
+
+    private static String requireRequestId(String requestId) {
+        if (requestId == null) {
+            throw new IllegalArgumentException("requestId is required for this packet type");
+        }
+        return requestId;
     }
 }

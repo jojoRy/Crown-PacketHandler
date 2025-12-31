@@ -1,6 +1,7 @@
 package kr.crownrpg.packethandler.packet;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 /**
  * 클라이언트에서 전송되는 모든 패킷의 공통 Envelope.
@@ -11,6 +12,7 @@ import com.google.gson.JsonObject;
 public record Envelope(
         PacketType type,
         String requestId,
+        Long clientTime,
         JsonObject payload
 ) {
 
@@ -26,10 +28,20 @@ public record Envelope(
         }
 
         PacketType type = PacketType.valueOf(root.get("type").getAsString());
-        String requestId = root.has("requestId")
-                ? root.get("requestId").getAsString()
-                : "";
+        String requestId = extractNullableString(root, "requestId");
+        Long clientTime = root.has("clientTime") && !root.get("clientTime").isJsonNull()
+                ? root.get("clientTime").getAsLong()
+                : null;
 
-        return new Envelope(type, requestId, root.getAsJsonObject("payload"));
+        return new Envelope(type, requestId, clientTime, root.getAsJsonObject("payload"));
+    }
+
+    private static String extractNullableString(JsonObject root, String key) {
+        if (!root.has(key)) return null;
+
+        JsonPrimitive primitive = root.getAsJsonPrimitive(key);
+        if (primitive == null || primitive.isJsonNull()) return null;
+
+        return primitive.getAsString();
     }
 }
