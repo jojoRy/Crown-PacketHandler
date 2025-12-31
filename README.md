@@ -95,6 +95,26 @@ crown:packet
 
 ---
 
+### 🔹 TEXT_INPUT_PREVIEW
+
+텍스트 입력 UI에서 입력 중인 내용(확정 전)을 실시간으로 전달
+
+```json
+{
+  "type": "TEXT_INPUT_PREVIEW",
+  "requestId": "uuid",
+  "payload": {
+    "context": "nickname_change",
+    "text": "입력중 텍스트"
+  }
+}
+```
+
+➡ `CrownPlayerTextInputPreviewEvent`
+
+---
+
+
 ### 🔹 TEXT_INPUT
 
 텍스트 입력 UI 결과
@@ -141,6 +161,7 @@ UI 선택 / 버튼 클릭
 ```
 CrownPlayerInputEvent
  ├─ CrownPlayerHotkeyEvent
+ ├─ CrownPlayerTextInputPreviewEvent
  ├─ CrownPlayerTextInputEvent
  └─ CrownPlayerUiActionEvent
 ```
@@ -203,6 +224,7 @@ kr.crownrpg.packethandler
  │   └─ PacketType.java
  ├─ event/
  │   ├─ CrownPlayerHotkeyEvent.java
+ │   ├─ CrownPlayerTextInputPreviewEvent.java
  │   ├─ CrownPlayerTextInputEvent.java
  │   └─ CrownPlayerUiActionEvent.java
  └─ util/
