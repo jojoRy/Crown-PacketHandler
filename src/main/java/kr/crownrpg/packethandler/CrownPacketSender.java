@@ -112,14 +112,23 @@ public final class CrownPacketSender {
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(payload, "payload");
 
-        JsonObject envelope = new JsonObject();
-        envelope.addProperty("type", type.name());
-        envelope.add("requestId", requestId == null ? JsonNull.INSTANCE : new JsonPrimitive(requestId));
-        envelope.addProperty("clientTime", System.currentTimeMillis());
-        envelope.add("payload", payload);
+        try {
+            JsonObject envelope = new JsonObject();
+            envelope.addProperty("type", type.name());
+            envelope.add("requestId", requestId == null ? JsonNull.INSTANCE : new JsonPrimitive(requestId));
+            envelope.addProperty("clientTime", System.currentTimeMillis());
+            envelope.add("payload", payload);
 
-        byte[] bytes = JsonUtils.gson().toJson(envelope).getBytes(StandardCharsets.UTF_8);
-        player.sendPluginMessage(plugin, CrownPacketHandler.CHANNEL, bytes);
+            byte[] bytes = JsonUtils.gson().toJson(envelope).getBytes(StandardCharsets.UTF_8);
+            if (bytes.length > 8192) {
+                // payload 최대 크기 초과 시 전송하지 않는다.
+                return;
+            }
+
+            player.sendPluginMessage(plugin, CrownPacketHandler.CHANNEL, bytes);
+        } catch (Exception ignored) {
+            // 어떤 이유로든 직렬화/전송 실패 시 서버 크래시를 방지한다.
+        }
     }
 
     private static void addNullableString(JsonObject payload, String key, String value) {
