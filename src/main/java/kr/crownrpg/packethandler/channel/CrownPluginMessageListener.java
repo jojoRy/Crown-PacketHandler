@@ -3,6 +3,7 @@ package kr.crownrpg.packethandler.channel;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import kr.crownrpg.packethandler.event.*;
+import kr.crownrpg.packethandler.CrownPacketHandler;
 import kr.crownrpg.packethandler.packet.Envelope;
 import kr.crownrpg.packethandler.packet.PacketType;
 import kr.crownrpg.packethandler.util.JsonUtils;
@@ -37,9 +38,12 @@ public final class CrownPluginMessageListener implements PluginMessageListener {
     public void onPluginMessageReceived(String channel, Player player, byte[] message) {
 
         // 계약된 채널 외 패킷 무시
-        if (!channel.equals("crown:packet")) return;
+        if (!channel.equals(CrownPacketHandler.CHANNEL)) return;
 
         try {
+            // 악성 패킷 방지 (너무 큰 패킷 무시)
+            if (message == null || message.length > 8192) return;
+
             // byte[] → UTF-8 JSON 문자열
             String json = new String(message, StandardCharsets.UTF_8);
 
