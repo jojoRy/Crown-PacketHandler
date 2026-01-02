@@ -62,4 +62,51 @@ public final class CrownPacketHandler extends JavaPlugin {
     public CrownPacketSender getPacketSender() {
         return packetSender;
     }
+
+    /**
+     * {@link CrownPacketSender#openTextInput(org.bukkit.entity.Player, String, String, String, String, int, int)}
+     * 의 편의 래퍼.
+     */
+    public void openTextInput(
+            org.bukkit.entity.Player player,
+            String requestId,
+            String context,
+            String title,
+            String placeholder,
+            int maxLength,
+            int timeoutMillis
+    ) {
+        packetSender.openTextInput(player, requestId, context, title, placeholder, maxLength, timeoutMillis);
+    }
+
+    /**
+     * {@link CrownPacketSender#openConfirmUi(org.bukkit.entity.Player, String, String, String, String, String, String, int)}
+     * 의 편의 래퍼.
+     */
+    public void openConfirmUi(
+            org.bukkit.entity.Player player,
+            String requestId,
+            String ui,
+            String title,
+            String message,
+            String acceptAction,
+            String cancelAction,
+            int timeoutMillis
+    ) {
+        packetSender.openConfirmUi(player, requestId, ui, title, message, acceptAction, cancelAction, timeoutMillis);
+    }
+
+    /**
+     * {@link CrownPacketSender#sendValidateResult(org.bukkit.entity.Player, String, boolean, String)}의 편의 래퍼.
+     */
+    public void sendValidateResult(org.bukkit.entity.Player player, String requestId, boolean valid, String message) {
+        packetSender.sendValidateResult(player, requestId, valid, message);
+    }
+
+    /**
+     * {@link CrownPacketSender#closeUi(org.bukkit.entity.Player, String)}의 편의 래퍼.
+     */
+    public void closeUi(org.bukkit.entity.Player player, String requestId) {
+        packetSender.closeUi(player, requestId);
+    }
 }
