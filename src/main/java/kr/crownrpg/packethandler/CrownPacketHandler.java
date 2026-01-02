@@ -11,6 +11,7 @@ import org.bukkit.plugin.java.JavaPlugin;
  * - 클라이언트(Fabric Mod)에서 전송된 CustomPayload 패킷을 수신한다.
  * - JSON 파싱 및 최소 검증을 수행한다.
  * - 입력 패킷을 Bukkit Event로 변환하여 서버에 전달한다.
+ * - 서버 측 Feature Plugin이 사용할 송신 API(CrownPacketSender)를 제공한다.
  *
  * ❌ 하지 않는 것:
  * - 게임 로직 처리
@@ -28,8 +29,12 @@ public final class CrownPacketHandler extends JavaPlugin {
      */
     public static final String CHANNEL = "crown:packet";
 
+    private CrownPacketSender packetSender;
+
     @Override
     public void onEnable() {
+        this.packetSender = new CrownPacketSender(this);
+
         // 클라이언트 → 서버 패킷 수신 등록
         Bukkit.getMessenger().registerIncomingPluginChannel(
                 this,
@@ -49,5 +54,12 @@ public final class CrownPacketHandler extends JavaPlugin {
     @Override
     public void onDisable() {
         getLogger().info("Crown-PacketHandler disabled");
+    }
+
+    /**
+     * 서버 → 클라이언트 송신용 CrownPacketSender를 반환한다.
+     */
+    public CrownPacketSender getPacketSender() {
+        return packetSender;
     }
 }
