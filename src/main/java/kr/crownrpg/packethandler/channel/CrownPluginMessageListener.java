@@ -91,6 +91,10 @@ public final class CrownPluginMessageListener implements PluginMessageListener {
                                 extractString(payload, "action")
                         )
                 );
+
+                // 서버→클라이언트 전송 전용 패킷 타입은 수신 시 무시한다.
+                default -> {
+                }
             }
 
         } catch (Exception ignored) {

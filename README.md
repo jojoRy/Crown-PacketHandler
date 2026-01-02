@@ -1,8 +1,7 @@
 # 🧩 Crown-PacketHandler
 
-**Crown-PacketHandler**는
-CrownClient(Fabric Mod)에서 전송된 **클라이언트 입력 패킷(JSON)**을
-**Bukkit Event로 변환하는 입력 어댑터 플러그인**입니다.
+**Crown-PacketHandler**는 CrownClient(Fabric Mod) ↔ Paper Server 간
+JSON 기반 통신을 담당하는 **양방향 어댑터 플러그인**입니다.
 
 > ❗ 이 플러그인은 **게임 로직을 처리하지 않습니다**
 > ❗ 입력의 의미 해석은 **Feature Plugin의 책임**입니다
@@ -16,9 +15,9 @@ Minecraft 클라이언트 모드와 서버 간의 통신을
 
 ```
 Client Mod (Fabric)
-   ↓ JSON Packet
+   ⇄ JSON PluginMessage
 Crown-PacketHandler
-   ↓ Bukkit Event
+   ⇄ Java API
 Feature Plugins
 ```
 
@@ -32,7 +31,7 @@ Feature Plugins
 
 ### ✔ 책임 분리
 
-* PacketHandler는 **입력 수신 + 이벤트 발행**만 담당
+* PacketHandler는 **입력 수신 + 이벤트 발행 + UI 요청 송신**만 담당
 * Feature Plugin이 **의미 해석 + 게임 로직** 담당
 
 ### ✔ 서버 안정성 최우선
@@ -75,6 +74,13 @@ crown:packet
 ---
 
 ## 📦 지원 패킷 타입
+
+### 🔹 서버 → 클라이언트
+
+* `OPEN_TEXT_INPUT`
+* `OPEN_CONFIRM_UI`
+* `UI_VALIDATE_RESULT`
+* `CLOSE_UI` (확장 대비)
 
 ### 🔹 HOTKEY
 
@@ -154,6 +160,62 @@ UI 선택 / 버튼 클릭
 
 ---
 
+## 🔹 서버 → 클라이언트 UI 패킷
+
+### OPEN_TEXT_INPUT
+
+텍스트 입력 UI를 연다. 타임아웃에 도달하면 클라이언트가 `confirmed=false`인 `TEXT_INPUT`을 보내며 UI를 닫는다.
+
+```json
+{
+  "type": "OPEN_TEXT_INPUT",
+  "requestId": "uuid",
+  "payload": {
+    "context": "nickname_change",
+    "title": "닉네임 변경",
+    "placeholder": "닉네임을 입력하세요",
+    "maxLength": 16,
+    "timeout": 15000
+  }
+}
+```
+
+### OPEN_CONFIRM_UI
+
+두 버튼(확인/취소) UI를 연다. 타임아웃 또는 사용자가 닫았을 때 `cancelAction`으로 `UI_ACTION`이 전송된다.
+
+```json
+{
+  "type": "OPEN_CONFIRM_UI",
+  "requestId": "uuid",
+  "payload": {
+    "ui": "party_invite",
+    "title": "파티 초대",
+    "message": "수락하시겠습니까?",
+    "acceptAction": "accept",
+    "cancelAction": "cancel",
+    "timeout": 10000
+  }
+}
+```
+
+### UI_VALIDATE_RESULT
+
+입력 검증 결과를 전달한다. `valid=true`일 때만 확인 버튼이 활성화된다.
+
+```json
+{
+  "type": "UI_VALIDATE_RESULT",
+  "requestId": "uuid",
+  "payload": {
+    "valid": true,
+    "message": "사용 가능한 닉네임입니다"
+  }
+}
+```
+
+---
+
 ## 📢 발생하는 Bukkit Events
 
 모든 이벤트는 **Crown-Lib**의 입력 이벤트 베이스를 상속합니다.
@@ -171,6 +233,61 @@ CrownPlayerInputEvent
 * Player는 항상 non-null
 * cancellable ❌
 * async ❌ (메인 스레드)
+
+---
+
+## 🚀 서버 → 클라이언트 송신 API
+
+Feature Plugin은 **PacketHandler가 제공하는 API만 호출**하면 된다.
+JSON 직렬화, 채널명, PacketType 참조가 필요 없다.
+
+```java
+public void openTextInput(
+    Player player,
+    String requestId,
+    String context,
+    String title,
+    String placeholder,
+    int maxLength,
+    int timeoutMillis
+);
+
+public void openConfirmUi(
+    Player player,
+    String requestId,
+    String ui,
+    String title,
+    String message,
+    String acceptAction,
+    String cancelAction,
+    int timeoutMillis
+);
+
+public void sendValidateResult(
+    Player player,
+    String requestId,
+    boolean valid,
+    String message
+);
+
+public void closeUi(Player player, String requestId);
+```
+
+> UI 요청은 반드시 PacketHandler를 통해 전송한다. Feature Plugin은 PluginMessage를 직접 다루지 않는다.
+
+모든 송신 패킷은 다음 Envelope 규칙을 따른다.
+
+```json
+{
+  "type": "PACKET_TYPE",
+  "requestId": "string | null",
+  "clientTime": 123456789,
+  "payload": {}
+}
+```
+
+* UI 흐름이 있는 패킷(`OPEN_TEXT_INPUT`, `OPEN_CONFIRM_UI`, `UI_VALIDATE_RESULT`, `CLOSE_UI`)은 항상 `requestId`를 사용한다.
+* `timeout`과 `placeholder` 같은 UI 필드는 선택적이다. `timeout`은 밀리초 단위이며 생략 시 클라이언트 기본값을 사용한다.
 
 ---
 
