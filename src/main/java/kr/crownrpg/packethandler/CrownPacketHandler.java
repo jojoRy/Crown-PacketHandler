@@ -39,7 +39,7 @@ public final class CrownPacketHandler extends JavaPlugin {
         Bukkit.getMessenger().registerIncomingPluginChannel(
                 this,
                 CHANNEL,
-                new CrownPluginMessageListener(this)
+                new CrownPluginMessageListener()
         );
 
         // 서버 → 클라이언트 패킷 송신 채널 등록

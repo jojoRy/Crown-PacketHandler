@@ -33,7 +33,12 @@ public record Envelope(
                 ? root.get("clientTime").getAsLong()
                 : null;
 
-        return new Envelope(type, requestId, clientTime, root.getAsJsonObject("payload"));
+        JsonObject payload = root.getAsJsonObject("payload");
+        if (payload == null) {
+            throw new IllegalArgumentException("Invalid packet envelope");
+        }
+
+        return new Envelope(type, requestId, clientTime, payload);
     }
 
     private static String extractNullableString(JsonObject root, String key) {
