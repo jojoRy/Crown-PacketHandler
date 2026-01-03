@@ -2,14 +2,13 @@ package kr.crownrpg.packethandler.channel;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import kr.crownrpg.packethandler.event.*;
 import kr.crownrpg.packethandler.CrownPacketHandler;
+import kr.crownrpg.packethandler.event.*;
 import kr.crownrpg.packethandler.packet.Envelope;
 import kr.crownrpg.packethandler.packet.PacketType;
 import kr.crownrpg.packethandler.util.JsonUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import java.nio.charset.StandardCharsets;
@@ -28,10 +27,7 @@ import java.nio.charset.StandardCharsets;
  */
 public final class CrownPluginMessageListener implements PluginMessageListener {
 
-    private final Plugin plugin;
-
-    public CrownPluginMessageListener(Plugin plugin) {
-        this.plugin = plugin;
+    public CrownPluginMessageListener() {
     }
 
     @Override
@@ -39,16 +35,14 @@ public final class CrownPluginMessageListener implements PluginMessageListener {
 
         // 계약된 채널 외 패킷 무시
         if (!channel.equals(CrownPacketHandler.CHANNEL)) return;
+        if (player == null || message == null) return;
 
         try {
             // 악성 패킷 방지 (너무 큰 패킷 무시)
-            if (message == null || message.length > 8192) return;
+            if (message.length > 8192) return;
 
             // byte[] → UTF-8 JSON 문자열
             String json = new String(message, StandardCharsets.UTF_8);
-
-            // 악성 패킷 방지 (너무 큰 패킷 무시)
-            if (json.length() > 8192) return;
 
             JsonObject root = JsonUtils.parse(json);
             Envelope envelope = Envelope.from(root);
@@ -59,42 +53,66 @@ public final class CrownPluginMessageListener implements PluginMessageListener {
 
             switch (type) {
 
-                case HOTKEY -> Bukkit.getPluginManager().callEvent(
-                        new CrownPlayerHotkeyEvent(
-                                player,
-                                extractString(payload, "action"),
-                                extractBoolean(payload, "pressed"),
-                                extractNullableString(payload, "context")
-                        )
-                );
+                case HOTKEY -> {
+                    String action = extractString(payload, "action");
+                    Boolean pressed = extractBoolean(payload, "pressed");
+                    if (action == null || pressed == null) return;
+                    Bukkit.getPluginManager().callEvent(
+                            new CrownPlayerHotkeyEvent(
+                                    player,
+                                    action,
+                                    pressed,
+                                    extractNullableString(payload, "context")
+                            )
+                    );
+                }
 
-                case TEXT_INPUT_PREVIEW -> Bukkit.getPluginManager().callEvent(
-                        new CrownPlayerTextInputPreviewEvent(
-                                player,
-                                requireRequestId(envelope.requestId()),
-                                extractString(payload, "context"),
-                                extractString(payload, "text")
-                        )
-                );
+                case TEXT_INPUT_PREVIEW -> {
+                    if (!hasRequestId(envelope.requestId())) return;
+                    String context = extractString(payload, "context");
+                    String text = extractString(payload, "text");
+                    if (context == null || text == null) return;
+                    Bukkit.getPluginManager().callEvent(
+                            new CrownPlayerTextInputPreviewEvent(
+                                    player,
+                                    envelope.requestId(),
+                                    context,
+                                    text
+                            )
+                    );
+                }
 
-                case TEXT_INPUT -> Bukkit.getPluginManager().callEvent(
-                        new CrownPlayerTextInputEvent(
-                                player,
-                                requireRequestId(envelope.requestId()),
-                                extractString(payload, "context"),
-                                extractString(payload, "text"),
-                                extractBoolean(payload, "confirmed")
-                        )
-                );
+                case TEXT_INPUT -> {
+                    if (!hasRequestId(envelope.requestId())) return;
+                    String context = extractString(payload, "context");
+                    String text = extractString(payload, "text");
+                    Boolean confirmed = extractBoolean(payload, "confirmed");
+                    if (context == null || text == null || confirmed == null) return;
+                    Bukkit.getPluginManager().callEvent(
+                            new CrownPlayerTextInputEvent(
+                                    player,
+                                    envelope.requestId(),
+                                    context,
+                                    text,
+                                    confirmed
+                            )
+                    );
+                }
 
-                case UI_ACTION -> Bukkit.getPluginManager().callEvent(
-                        new CrownPlayerUiActionEvent(
-                                player,
-                                requireRequestId(envelope.requestId()),
-                                extractString(payload, "ui"),
-                                extractString(payload, "action")
-                        )
-                );
+                case UI_ACTION -> {
+                    if (!hasRequestId(envelope.requestId())) return;
+                    String ui = extractString(payload, "ui");
+                    String action = extractString(payload, "action");
+                    if (ui == null || action == null) return;
+                    Bukkit.getPluginManager().callEvent(
+                            new CrownPlayerUiActionEvent(
+                                    player,
+                                    envelope.requestId(),
+                                    ui,
+                                    action
+                            )
+                    );
+                }
 
                 // 서버→클라이언트 전송 전용 패킷 타입은 수신 시 무시한다.
                 default -> {
@@ -120,14 +138,14 @@ public final class CrownPluginMessageListener implements PluginMessageListener {
 
     private static String extractString(JsonObject payload, String key) {
         if (!hasString(payload, key)) {
-            throw new IllegalArgumentException("Missing required string field: " + key);
+            return null;
         }
         return payload.get(key).getAsString();
     }
 
-    private static boolean extractBoolean(JsonObject payload, String key) {
+    private static Boolean extractBoolean(JsonObject payload, String key) {
         if (!hasBoolean(payload, key)) {
-            throw new IllegalArgumentException("Missing required boolean field: " + key);
+            return null;
         }
         return payload.get(key).getAsBoolean();
     }
@@ -136,10 +154,7 @@ public final class CrownPluginMessageListener implements PluginMessageListener {
         return hasString(payload, key) ? payload.get(key).getAsString() : null;
     }
 
-    private static String requireRequestId(String requestId) {
-        if (requestId == null) {
-            throw new IllegalArgumentException("requestId is required for this packet type");
-        }
-        return requestId;
+    private static boolean hasRequestId(String requestId) {
+        return requestId != null && !requestId.isEmpty();
     }
 }

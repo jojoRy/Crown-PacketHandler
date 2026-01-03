@@ -8,5 +8,12 @@ public enum PacketType {
     OPEN_CONFIRM_UI,
     OPEN_TEXT_INPUT,
     UI_VALIDATE_RESULT,
-    CLOSE_UI
+    CLOSE_UI;
+
+    public boolean requiresRequestId() {
+        return switch (this) {
+            case HOTKEY -> false;
+            default -> true;
+        };
+    }
 }

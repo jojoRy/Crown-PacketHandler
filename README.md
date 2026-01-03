@@ -39,6 +39,7 @@ Feature Plugins
 * JSON 파싱 실패 → 무시
 * 알 수 없는 패킷 → 무시
 * 예외 발생 → 서버 크래시 ❌
+* PluginMessage 송수신 모두 **UTF-8 기준 8KB** 초과 시 전송/처리 ❌
 
 ### ✔ Infra 독립
 
@@ -65,6 +66,8 @@ Feature Plugins
 ```
 crown:packet
 ```
+
+* 모든 수신 패킷은 **채널명 완전 일치**가 아니면 무시한다.
 
 * 인코딩
 
@@ -281,12 +284,15 @@ public void closeUi(Player player, String requestId);
 {
   "type": "PACKET_TYPE",
   "requestId": "string | null",
-  "clientTime": 123456789,
+  "clientTime": 123456789, // 서버→클라이언트 전송 시 서버 시각을 기록
   "payload": {}
 }
 ```
 
-* UI 흐름이 있는 패킷(`OPEN_TEXT_INPUT`, `OPEN_CONFIRM_UI`, `UI_VALIDATE_RESULT`, `CLOSE_UI`)은 항상 `requestId`를 사용한다.
+* UI 흐름이 있는 패킷(`OPEN_TEXT_INPUT`, `OPEN_CONFIRM_UI`, `UI_VALIDATE_RESULT`, `CLOSE_UI`)은 **항상 `requestId`를 사용**한다.
+* 클라이언트→서버 TEXT_INPUT / TEXT_INPUT_PREVIEW / UI_ACTION은 `requestId`가 없으면 이벤트로 발행되지 않는다.
+* HOTKEY는 `requestId`가 없어도 허용된다.
+* Envelope 직렬화 시 8KB를 초과하면 **전송하지 않고 즉시 중단**한다.
 * `timeout`과 `placeholder` 같은 UI 필드는 선택적이다. `timeout`은 밀리초 단위이며 생략 시 클라이언트 기본값을 사용한다.
 
 ---
@@ -353,6 +359,8 @@ kr.crownrpg.packethandler
 ## 🔐 안정성 정책
 
 * 패킷 최대 길이 제한 (8KB)
+    * 서버→클라이언트: 직렬화된 UTF-8 JSON이 8KB를 넘으면 **전송하지 않는다**
+    * 클라이언트→서버: 8KB 초과 payload는 **이벤트 발행 없이 무시**
 * try/catch 전면 적용
 * 서버 크래시 0% 설계
 * 잘못된 패킷은 모두 무시

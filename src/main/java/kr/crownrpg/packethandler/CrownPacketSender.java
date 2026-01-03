@@ -9,7 +9,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Objects;
 
 /**
  * Crown-PacketHandler가 제공하는 서버→클라이언트 송신 API.
@@ -37,10 +36,9 @@ public final class CrownPacketSender {
             int maxLength,
             int timeoutMillis
     ) {
-        Objects.requireNonNull(player, "player");
-        Objects.requireNonNull(requestId, "requestId");
-        Objects.requireNonNull(context, "context");
-        Objects.requireNonNull(title, "title");
+        if (player == null || requestId == null || context == null || title == null) {
+            return;
+        }
 
         JsonObject payload = new JsonObject();
         payload.addProperty("context", context);
@@ -65,13 +63,15 @@ public final class CrownPacketSender {
             String cancelAction,
             int timeoutMillis
     ) {
-        Objects.requireNonNull(player, "player");
-        Objects.requireNonNull(requestId, "requestId");
-        Objects.requireNonNull(ui, "ui");
-        Objects.requireNonNull(title, "title");
-        Objects.requireNonNull(message, "message");
-        Objects.requireNonNull(acceptAction, "acceptAction");
-        Objects.requireNonNull(cancelAction, "cancelAction");
+        if (player == null
+                || requestId == null
+                || ui == null
+                || title == null
+                || message == null
+                || acceptAction == null
+                || cancelAction == null) {
+            return;
+        }
 
         JsonObject payload = new JsonObject();
         payload.addProperty("ui", ui);
@@ -88,8 +88,9 @@ public final class CrownPacketSender {
      * 입력 검증 결과를 실시간으로 전달한다.
      */
     public void sendValidateResult(Player player, String requestId, boolean valid, String message) {
-        Objects.requireNonNull(player, "player");
-        Objects.requireNonNull(requestId, "requestId");
+        if (player == null || requestId == null) {
+            return;
+        }
 
         JsonObject payload = new JsonObject();
         payload.addProperty("valid", valid);
@@ -102,17 +103,23 @@ public final class CrownPacketSender {
      * 특정 UI 세션을 강제로 닫는다.
      */
     public void closeUi(Player player, String requestId) {
-        Objects.requireNonNull(player, "player");
-        Objects.requireNonNull(requestId, "requestId");
+        if (player == null || requestId == null) {
+            return;
+        }
 
         send(player, PacketType.CLOSE_UI, requestId, new JsonObject());
     }
 
     private void send(Player player, PacketType type, String requestId, JsonObject payload) {
-        Objects.requireNonNull(type, "type");
-        Objects.requireNonNull(payload, "payload");
+        if (player == null || type == null || payload == null) {
+            return;
+        }
 
         try {
+            if (type.requiresRequestId() && requestId == null) {
+                return;
+            }
+
             JsonObject envelope = new JsonObject();
             envelope.addProperty("type", type.name());
             envelope.add("requestId", requestId == null ? JsonNull.INSTANCE : new JsonPrimitive(requestId));
